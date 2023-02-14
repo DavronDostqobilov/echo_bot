@@ -11,7 +11,7 @@ def get_updates():
     return data
 
 
-def get_last_updates():
+def get_last_updates(result):
     """
     Use this function to get updates from Telegram.
 
@@ -22,14 +22,45 @@ def get_last_updates():
         str(text): Message text
         int(update_id): Telegram update id
     """
-    r=requests.get(f'https://api.telegram.org/bot{TOKEN}/GetUpdates')
-    r=r.json()['result']
-    chat_id=r[-1]['message']['chat']['id']
-    text=r[-1]['message']['text']
-    updates_id=r[-1]['update_id']
-    return chat_id,text,updates_id 
+#filtrs1
+    if result[-1]['message'].get('photo', False):
+       # print( result[-1]['message'].get('photo', False))
+        chat_id=result[-1]['message']['chat']['id']
+        photo=result[-1]['message']['photo'][0]['file_id']
+        updates_id=result[-1]['update_id']
+        return chat_id,photo,updates_id 
+    if  result[-1]['message'].get('text',False):
+        #print(result[-1]['message'].get('text',False))
+        chat_id=result[-1]['message']['chat']['id']
+        text=result[-1]['message']['text']
+        updates_id=result[-1]['update_id']
+        return chat_id,text,updates_id 
+    if  result[-1]['message'].get('sticker',False):
+        #print(result[-1]['message'].get('sticker',False))
+        chat_id=result[-1]['message']['chat']['id']
+        sticker=result[-1]['message']['sticker']['file_id']
+        updates_id=result[-1]['update_id']
+        return chat_id,sticker,updates_id 
+    
+#sends
+def send_photo(chat_id,stic_photo_text):
+    param={'chat_id':chat_id,
+           'photo':stic_photo_text
+          }
+    
+    r=requests.get(f'https://api.telegram.org/bot{TOKEN}/sendPhoto',params=param)
+    ans=r.json()
+    return ans
+def send_sticker(chat_id,stic_photo_text):
+    param={'chat_id':chat_id,
+           'sticker':stic_photo_text
+          }
+    
+    r=requests.get(f'https://api.telegram.org/bot{TOKEN}/sendSticker',params=param)
+    ans=r.json()
+    return ans
 
-def send_message(chat_id,text):
+def send_message(chat_id,stic_photo_text):
     '''
     Use this function to send text messages.
 
@@ -40,7 +71,7 @@ def send_message(chat_id,text):
         None
     '''
     param={'chat_id':chat_id,
-           'text':text
+           'text':stic_photo_text
           }
     
     r=requests.get(f'https://api.telegram.org/bot{TOKEN}/sendMessage',params=param)
@@ -48,18 +79,31 @@ def send_message(chat_id,text):
     return ans
 last_update_id=-1
 
+#server
+
 while True:
-    x=get_updates()
-    chat_id,text,updates_id=get_last_updates()
-    #updates_id=get_last_updates(get_updates())[-1]
-    if updates_id!=last_update_id:
+    result=get_updates()
+    chat_id,stic_photo_text,update_id=get_last_updates(result)
+    if update_id!=last_update_id:
+        print(update_id, last_update_id)
+         
+#filtrs2
+
+        if 'sticker' in result[-1]['message']:
+            send_sticker(chat_id,stic_photo_text)       
         
-        print(updates_id, last_update_id)
-        if text=='/start':
-            send_message(chat_id,'Salom Aksado botga hush kelibsiz!')
-        else:
-            send_message(chat_id,text)
-        last_update_id=updates_id
+
+        if 'photo' in result[-1]['message']:
+            send_photo(chat_id,stic_photo_text)
+            
+        if 'text' in result[-1]['message']:
+            
+            if stic_photo_text=='/start':
+                send_message(chat_id,'Salom  botga hush kelibsiz!')
+            else:
+                send_message(chat_id,stic_photo_text)
+
+        last_update_id=update_id
     time.sleep(2)
 
 
